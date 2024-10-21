@@ -21,11 +21,10 @@ const users = [
 
 http
   .createServer((req, res) => {
-    const { pathname, search } = parse(req.url, true);
-    const pathnameParts = pathname.split("/").slice(1);
-
     const url = new URL(req.url, `http://${req.headers.host}`);
     const params = Object.fromEntries(url.searchParams.entries());
+
+    const pathnameParts = url.pathname.split("/").slice(1);
 
     if (pathnameParts[0] === "users") {
       switch (req.method) {
@@ -66,96 +65,132 @@ http
   });
 
 function getUserById(req, res, userId) {
-  const user = users.find((user) => user.id === parseInt(userId));
-  if (!user) {
-    res.writeHead(404);
-    res.end("User not found");
-  }
+  try {
+    const user = users.find((user) => user.id === parseInt(userId));
+    if (!user) {
+      res.writeHead(404);
+      return res.end("User not found");
+    }
 
-  res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(user));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(user));
+  } catch (error) {
+    res.writeHead(500);
+    res.end(`Internal Server Error: ${error.message}`);
+  }
 }
 
 function getUsers(req, res) {
-  res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(users));
+  try {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(users));
+  } catch (error) {
+    res.writeHead(500);
+    res.end(`Internal Server Error: ${error.message}`);
+  }
 }
 
 function createUser(req, res) {
   let newUser = {};
-  req
-    .on("data", (user) => {
-      newUser = JSON.parse(user);
-    })
-    .on("end", () => {
-      users.push(newUser);
-      res.writeHead(201, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(newUser));
-    });
+  try {
+    req
+      .on("data", (user) => {
+        newUser = JSON.parse(user);
+      })
+      .on("end", () => {
+        users.push(newUser);
+        res.writeHead(201, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(newUser));
+      });
+  } catch (error) {
+    res.writeHead(500);
+    res.end(`Internal Server Error: ${error.message}`);
+  }
 }
 
 function replaceUser(req, res, userId) {
-  if (!users[userId - 1]) {
-    res.writeHead(404);
-    res.end("User not found");
+  try {
+    const userIndex = userId - 1;
+    if (!users[userIndex]) {
+      res.writeHead(404);
+      return res.end("User not found");
+    }
+    let newUser = {};
+    req
+      .on("data", (user) => {
+        newUser = JSON.parse(user);
+      })
+      .on("end", () => {
+        users[userIndex] = newUser;
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(newUser));
+      });
+  } catch (error) {
+    res.writeHead(500);
+    res.end(`Internal Server Error: ${error.message}`);
   }
-  let newUser = {};
-  req
-    .on("data", (user) => {
-      newUser = JSON.parse(user);
-    })
-    .on("end", () => {
-      users[userId - 1] = newUser;
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(newUser));
-    });
 }
 
-// TODO: PATCH not like PUT
 function editUser(req, res, userId) {
-  if (!users[userId - 1]) {
-    res.writeHead(404);
-    res.end("User not found");
-  }
-  let newUser = {};
-  const user = users[userId - 1];
-  req
-    .on("data", (user) => {
-      newUser = JSON.parse(user);
-    })
-    .on("end", () => {
-      for (let key in newUser) {
-        if (newUser[key] !== user[key]) {
-          user[key] = newUser[key];
+  try {
+    const userIndex = userId - 1;
+    if (!users[userIndex]) {
+      res.writeHead(404);
+      return res.end("User not found");
+    }
+    let newUser = {};
+    const user = users[userIndex];
+    req
+      .on("data", (userData) => {
+        newUser = JSON.parse(userData);
+      })
+      .on("end", () => {
+        for (let key in newUser) {
+          if (newUser[key] !== user[key]) {
+            user[key] = newUser[key];
+          }
         }
-      }
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(newUser));
-    });
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(user)); // Обновленный объект юзера
+      });
+  } catch (error) {
+    res.writeHead(500);
+    res.end(`Internal Server Error: ${error.message}`);
+  }
 }
 
 function deleteUser(req, res, userId) {
-  if (!users[userId - 1]) {
-    res.writeHead(404);
-    res.end("User not found");
+  try {
+    const userIndex = userId - 1;
+    if (!users[userIndex]) {
+      res.writeHead(404);
+      return res.end("User not found");
+    }
+    users.splice(userIndex, 1);
+    res.writeHead(204);
+    res.end("User deleted");
+  } catch (error) {
+    res.writeHead(500);
+    res.end(`Internal Server Error: ${error.message}`);
   }
-  users.splice(userId - 1, 1);
-  res.writeHead(204);
-  res.end("User deleted");
 }
 
 function getUsersByQuery(req, res, query) {
-  res.writeHead(200, { "Content-Type": "application/json" });
+  try {
+    const usersByQuery = users.filter((user) => {
+      if (query.name && user.name !== query.name) {
+        return false;
+      }
+      if ((query.age && user.age > query.maxAge) || user.age < query.minAge) {
+        return false;
+      }
+      return true;
+    });
 
-  const usersByQuery = users.filter((user) => {
-    if (query.name && user.name !== query.name) {
-      return false;
-    }
-    if ((query.age && user.age > query.maxAge) || user.age < query.minAge) {
-      return false;
-    }
-    return true;
-  });
-
-  res.end(JSON.stringify(usersByQuery));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(usersByQuery));
+  } catch (error) {
+    res.writeHead(500);
+    res.end(`Internal Server Error: ${error.message}`);
+  }
 }
