@@ -26,6 +26,15 @@ class UserRepository {
     }
   }
 
+  async filterUsers(filterFunction) {
+    try {
+      const users = await this.getAll();
+      return users.filter(filterFunction);
+    } catch (error) {
+      throw new Error("Error filtering users");
+    }
+  }
+
   async create(user) {
     try {
       const users = await this.getAll();

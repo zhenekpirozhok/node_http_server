@@ -25,7 +25,7 @@ http
           } else if (url.search) {
             getUsersByQuery(req, res, params);
           } else {
-            await getUsers(req, res);
+            getUsers(req, res);
           }
           break;
 
