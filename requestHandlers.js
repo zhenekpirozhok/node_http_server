@@ -1,4 +1,5 @@
 import userRepoClass from "./userRepo.js";
+import { bodyParser } from "./utils.js";
 
 const userRepo = new userRepoClass();
 
@@ -25,63 +26,45 @@ export async function getUsers(req, res) {
 }
 
 export function createUser(req, res) {
-  let newUser = {};
   try {
-    req
-      .on("data", (user) => {
-        newUser = JSON.parse(user);
-      })
-      .on("end", async () => {
-        await userRepo.create(newUser);
-        res.writeHead(201, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(newUser));
-      });
+    const body = bodyParser(req);
+    const newUser = JSON.parse(body);
+    userRepo.create(newUser);
+    res.writeHead(201, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(newUser));
   } catch (error) {
     res.writeHead(500);
     res.end(`Internal Server Error: ${error.message}`);
   }
 }
 
-export function replaceUser(req, res, userId) {
+export async function replaceUser(req, res, userId) {
   try {
-    let newUser = {};
-    req
-      .on("data", (user) => {
-        newUser = JSON.parse(user);
-      })
-      .on("end", () => {
-        try {
-          userRepo.update(+userId, newUser);
-        } catch (error) {
-          res.writeHead(404);
-          res.end(`Internal Server Error: ${error.message}`);
-        }
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(newUser));
-      });
+    const body = await bodyParser(req);
+    const user = JSON.parse(body);
+    await userRepo.update(+userId, user);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(user));
   } catch (error) {
     res.writeHead(500);
     res.end(`Internal Server Error: ${error.message}`);
   }
 }
 
-export function editUser(req, res, userId) {
+export async function editUser(req, res, userId) {
   try {
-    const user = userRepo.getById(+userId);
-    let newUser = {};
-    req
-      .on("data", (userData) => {
-        newUser = JSON.parse(userData);
-      })
-      .on("end", () => {
-        for (let key in newUser) {
-          if (newUser[key] !== user[key]) {
-            user[key] = newUser[key];
-          }
-        }
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(user)); // Обновленный объект юзера
-      });
+    const user = await userRepo.getById(+userId);
+    const body = await bodyParser(req);
+    const updatedUser = JSON.parse(body);
+
+    for (const key in updatedUser) {
+      if (user[key] !== updatedUser[key]) {
+        user[key] = updatedUser[key];
+      }
+    }
+    await userRepo.update(+userId, user);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(user));
   } catch (error) {
     res.writeHead(500);
     res.end(`Internal Server Error: ${error.message}`);
