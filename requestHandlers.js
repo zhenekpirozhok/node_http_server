@@ -25,11 +25,11 @@ export async function getUsers(req, res) {
   }
 }
 
-export function createUser(req, res) {
+export async function createUser(req, res) {
   try {
     const body = bodyParser(req);
     const newUser = JSON.parse(body);
-    userRepo.create(newUser);
+    await userRepo.create(newUser);
     res.writeHead(201, { "Content-Type": "application/json" });
     res.end(JSON.stringify(newUser));
   } catch (error) {
@@ -71,9 +71,9 @@ export async function editUser(req, res, userId) {
   }
 }
 
-export function deleteUser(req, res, userId) {
+export async function deleteUser(req, res, userId) {
   try {
-    userRepo.delete(+userId);
+    await userRepo.delete(+userId);
     res.writeHead(200);
     res.end("User deleted");
   } catch (error) {

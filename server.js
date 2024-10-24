@@ -21,28 +21,28 @@ http
       switch (req.method) {
         case "GET":
           if (pathnameParts[1]) {
-            getUserById(req, res, pathnameParts[1]);
+            await getUserById(req, res, pathnameParts[1]);
           } else if (url.search) {
-            getUsersByQuery(req, res, params);
+            await getUsersByQuery(req, res, params);
           } else {
-            getUsers(req, res);
+            await getUsers(req, res);
           }
           break;
 
         case "POST":
-          createUser(req, res);
+          await createUser(req, res);
           break;
 
         case "PUT":
-          replaceUser(req, res, pathnameParts[1]);
+          await replaceUser(req, res, pathnameParts[1]);
           break;
 
         case "PATCH":
-          editUser(req, res, pathnameParts[1]);
+          await editUser(req, res, pathnameParts[1]);
           break;
 
         case "DELETE":
-          deleteUser(req, res, pathnameParts[1]);
+          await deleteUser(req, res, pathnameParts[1]);
           break;
 
         default:
